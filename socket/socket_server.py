@@ -2,7 +2,7 @@ import socket
 import datetime
 import random
 
-HOST = '127.0.0.1'
+HOST = '10.2.136.122'
 PORT = 9000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
