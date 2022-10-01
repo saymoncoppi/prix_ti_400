@@ -47,8 +47,9 @@ while True:
     communication_socket, address = server.accept()
     print(f"Conected to {address}")
     while 1:
-        communication_socket.send(sample_socket_answer())
-        print(f"Sent: {sample_socket_answer().decode()}")
+        msg = sample_socket_answer()
+        communication_socket.send(msg)
+        print(f"Sent: {msg.decode()}")
         time.sleep(5)
 
     communication_socket.close()
