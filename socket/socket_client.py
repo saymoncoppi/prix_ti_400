@@ -21,18 +21,20 @@ parser = argparse.ArgumentParser(description="Connect to PRIX TI400 Socket Serve
 parser.add_argument("-ip", "--ip_address", required=True)
 parser.add_argument("-p", "--port", required=True)
 parser.add_argument("-l", "--log", choices=["yes", "no"], default="yes")
+parser.add_argument("-d", "--display", choices=["yes", "no"], default="no")
 options = parser.parse_args()
 
 tcp_ip = str(options.ip_address)
 tcp_port = int(options.port)
 log = str(options.log)
+display = str(options.display)
 
 tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection = (tcp_ip, tcp_port)
 
 BUFFER_SIZE = 1024
 
-current_data = ""
+current_data = None
 ext_platform = ""
 ext_material = ""
 ext_weight = ""
@@ -41,9 +43,23 @@ ext_date_time = ""
 received_changes = ""
 check_changes = ""
 is_connected = False
+cleanned_content = {}
 
 
-def logger(received_data):
+def cleanned_data(received_data):
+    cleanned_content["get_platform"] = received_data[:10].rstrip()
+    cleanned_content["get_material"] = received_data[-12:].lstrip().replace(" ", "")
+    cleanned_content["get_weight"] = received_data[10:17].lstrip().replace(",", ".")
+    cleanned_content["get_weight_stable"] = received_data[17:18].lstrip()
+    cleanned_content["get_date_time_pre"] = received_data[20:38].lstrip()
+    cleanned_content["get_date_time"] = datetime.strptime(
+        cleanned_content["get_date_time_pre"], "%d/%m/%Y%H:%M:%S"
+    )
+
+    return cleanned_content
+
+
+def logger(logger_data):
     """Function to write log files"""
     target_folder = Path("log")
     now = datetime.now()
@@ -51,12 +67,12 @@ def logger(received_data):
     if not os.path.exists(target_folder):
         Path("log").mkdir(parents=True, exist_ok=True)
 
-    txt_filename = "LOG_" + now.strftime("%Y%m%d%H%M%S") + ".txt"
+    txt_filename = "LOG_" + now.strftime("%Y%m%d") + ".txt"
     new_txt = Path(target_folder, str(txt_filename))
     txt_lines = []
-    txt_lines.append(f"{received_data}\n")
+    txt_lines.append(f"{logger_data}\n")
 
-    f = open(new_txt, "w")
+    f = open(new_txt, "a")
     f.writelines(txt_lines)
     f.close()
 
@@ -80,23 +96,30 @@ if is_connected:
     while 1:
         received_data = tcp.recv(BUFFER_SIZE).decode()
 
-        if received_data:
-            if len(received_data) == 50:
-                ext_platform = received_data[:10].rstrip()
-                ext_material = received_data[-12:].lstrip()
-                ext_weight = received_data[10:17].lstrip().replace(",", ".")
-                ext_weight_stable = received_data[17:18].lstrip()
-                ext_date_time_pre = received_data[20:38].lstrip()
-                ext_date_time = datetime.strptime(ext_date_time_pre, "%d/%m/%Y%H:%M:%S")
+        if len(received_data) == 50:
+
+            cleanned_data(received_data)
+            ext_platform = cleanned_content["get_platform"]
+            ext_material = cleanned_content["get_material"]
+            ext_weight = cleanned_content["get_weight"]
+            ext_weight_stable = cleanned_content["get_weight_stable"]
+            ext_date_time = cleanned_content["get_date_time"]
+
+            if not ext_material == "":
                 received_changes = f"{ext_material}|{ext_weight}"
+                logger_data = (
+                    f"{ext_platform};{ext_material};{ext_weight};{ext_date_time}"
+                )
 
-                if (
-                    (ext_weight_stable == "E")
-                    and (not ext_weight == "0.000")
-                    and (not check_changes == received_changes)
-                ):
-                    check_changes = f"{ext_material}|{ext_weight}"
+            if (
+                (ext_weight_stable == "E")
+                and (not ext_weight == "0.000")
+                and (not ext_material == "")
+                and (not check_changes == received_changes)
+            ):
+                check_changes = f"{ext_material}|{ext_weight}"
 
+                if display == "yes":
                     print(f"Platform:   {ext_platform}")
                     print(f"Material:   {ext_material}")
                     print(f"Weight:     {ext_weight}")
@@ -105,7 +128,7 @@ if is_connected:
                         "----------------------------------------------------------------------"
                     )
 
-                    if log == "yes":
-                        logger(received_data)
+                if log == "yes":
+                    logger(logger_data)
 
     tcp.close()
