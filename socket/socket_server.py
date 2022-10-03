@@ -2,13 +2,19 @@ import socket
 import datetime
 import random
 import time
+import argparse
 
-HOST = "192.168.0.11"
-PORT = 9000
+
+parser = argparse.ArgumentParser(description="Connect to PRIX TI400 Socket Server")
+parser.add_argument("-p", "--port", default=9000)
+options = parser.parse_args()
+tcp_port = int(options.port)
+
+HOST = socket.gethostname()
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-server.bind((HOST, PORT))
+server.bind((HOST, tcp_port))
 
 
 def sample_socket_answer():
@@ -41,7 +47,7 @@ def sample_socket_answer():
 
 
 server.listen(5)
-print(f"Simple Socket Server                    ({HOST}:{PORT})\n")
+print(f"Simple Socket Server                    ({HOST}:{tcp_port})\n")
 
 while True:
     communication_socket, address = server.accept()

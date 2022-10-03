@@ -80,6 +80,15 @@ def logger(logger_data):
     return
 
 
+def display_data(display_data_content):
+    """Function to display data content during console execution"""
+    for key in display_data_content:
+        display_key = str(key).ljust(10, " ")
+        print(display_key, "  :  ", display_data_content[key])
+    print("----------------------------------------------------------------------")
+    return
+
+
 try:
     tcp.connect(connection)
     print()
@@ -110,6 +119,12 @@ if is_connected:
                 logger_data = (
                     f"{ext_platform};{ext_material};{ext_weight};{ext_date_time}"
                 )
+                display_data_content = {
+                    "Platform": ext_platform,
+                    "Material": ext_material,
+                    "Weight": ext_weight,
+                    "Date/Time": ext_date_time,
+                }
 
             if (
                 (ext_weight_stable == "E")
@@ -120,13 +135,7 @@ if is_connected:
                 check_changes = f"{ext_material}|{ext_weight}"
 
                 if display == "yes":
-                    print(f"Platform:   {ext_platform}")
-                    print(f"Material:   {ext_material}")
-                    print(f"Weight:     {ext_weight}")
-                    print(f"Date/Time:  {ext_date_time}")
-                    print(
-                        "----------------------------------------------------------------------"
-                    )
+                    display_data(display_data_content)
 
                 if log == "yes":
                     logger(logger_data)
